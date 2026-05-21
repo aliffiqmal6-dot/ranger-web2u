@@ -70,19 +70,19 @@ export default function WiraDigital() {
     setAnalyzing(true);
     try {
       const imgData = canvasRef.current.toDataURL("image/jpeg").split(",")[1];
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:1000,
-          messages:[{role:"user", content:[
-            {type:"image", source:{type:"base64", media_type:"image/jpeg", data: imgData}},
-            {type:"text", text:`Ini gambar resit perbelanjaan. Ekstrak maklumat dan jawab HANYA dalam JSON tanpa backtick:\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}
+          contents:[{parts:[
+            {inline_data:{mime_type:"image/jpeg", data: imgData}},
+            {text:`Ini gambar resit perbelanjaan. Ekstrak maklumat dan jawab HANYA dalam JSON tanpa backtick:\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}
           ]}]
         })
       });
       const data = await res.json();
-      const text = data.content?.map(b=>b.text||"").join("").trim().replace(/```json|```/g,"").trim();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/```json|```/g,"").trim();
       const obj = JSON.parse(text);
       setParsed(obj);
       setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
@@ -95,16 +95,16 @@ export default function WiraDigital() {
     if (!rawInput.trim()) return showToast("Masukkan teks resit","err");
     setAnalyzing(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:1000,
-          messages:[{role:"user", content:`Ekstrak dari teks resit ini dan jawab HANYA dalam JSON tanpa backtick:\n${rawInput}\n\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}]
+          contents:[{parts:[{text:`Ekstrak dari teks resit ini dan jawab HANYA dalam JSON tanpa backtick:\n${rawInput}\n\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}]}]
         })
       });
       const data = await res.json();
-      const text = data.content?.map(b=>b.text||"").join("").trim().replace(/```json|```/g,"").trim();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/```json|```/g,"").trim();
       const obj = JSON.parse(text);
       setParsed(obj);
       setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
