@@ -68,25 +68,21 @@ export default function WiraDigital() {
 
   async function analyzeImage() {
     setAnalyzing(true);
+    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
     try {
       const imgData = canvasRef.current.toDataURL("image/jpeg").split(",")[1];
-      const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      const res = await fetch(BACKEND, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          contents:[{parts:[
-            {inline_data:{mime_type:"image/jpeg", data: imgData}},
-            {text:`Ini gambar resit perbelanjaan. Ekstrak maklumat dan jawab HANYA dalam JSON tanpa backtick:\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}
-          ]}]
-        })
+        body: JSON.stringify({ action:"analisis", imageBase64: imgData })
       });
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/```json|```/g,"").trim();
-      const obj = JSON.parse(text);
-      setParsed(obj);
-      setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
-      showToast("✅ Resit berjaya dianalisis!");
+      if (data.status === "ok" && data.data) {
+        const obj = data.data;
+        setParsed(obj);
+        setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
+        showToast("✅ Resit berjaya dianalisis!");
+      } else { showToast("Gagal analisis. Isi manual.","err"); }
     } catch { showToast("Gagal analisis. Isi manual.","err"); }
     setAnalyzing(false);
   }
@@ -94,34 +90,44 @@ export default function WiraDigital() {
   async function analyzeText() {
     if (!rawInput.trim()) return showToast("Masukkan teks resit","err");
     setAnalyzing(true);
+    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
     try {
-      const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      const res = await fetch(BACKEND, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-          contents:[{parts:[{text:`Ekstrak dari teks resit ini dan jawab HANYA dalam JSON tanpa backtick:\n${rawInput}\n\n{"jumlah":number,"penerima":"string","kategori":"Operasi|Perjalanan|Makanan|Peralatan|Utiliti|Lain-lain","tarikh":"YYYY-MM-DD","catatan":"string"}`}]}]
-        })
+        body: JSON.stringify({ action:"analisis_teks", teks: rawInput })
       });
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/```json|```/g,"").trim();
-      const obj = JSON.parse(text);
-      setParsed(obj);
-      setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
-      showToast("✅ Teks berjaya dianalisis!");
+      if (data.status === "ok" && data.data) {
+        const obj = data.data;
+        setParsed(obj);
+        setForm(f=>({...f, penerima:obj.penerima||f.penerima, kategori:CATEGORIES.includes(obj.kategori)?obj.kategori:"Lain-lain", jumlah:obj.jumlah?String(obj.jumlah):f.jumlah, catatan:obj.catatan||f.catatan, tarikh:obj.tarikh||f.tarikh}));
+        showToast("✅ Teks berjaya dianalisis!");
+      } else { showToast("Gagal analisis. Cuba lagi.","err"); }
     } catch { showToast("Gagal analisis. Cuba lagi.","err"); }
     setAnalyzing(false);
   }
 
-  function handleSimpan() {
+  async function handleSimpan() {
     if (overLimit) { setShowUpgrade(true); return; }
     if (!form.penerima.trim()) return showToast("Masukkan nama penerima","err");
     if (!form.jumlah || isNaN(Number(form.jumlah)) || Number(form.jumlah)<=0) return showToast("Masukkan jumlah yang sah","err");
+    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
     const rec = { id:Date.now(), ...form, jumlah:parseFloat(form.jumlah), bulan:getMonthKey(form.tarikh), createdAt:new Date().toISOString() };
     setRecords(r=>[rec,...r]);
     setForm({penerima:"",kategori:"Operasi",jumlah:"",catatan:"",tarikh:new Date().toISOString().slice(0,10)});
     setRawInput(""); setParsed(null);
-    showToast("✅ Resit berjaya disimpan!");
+    showToast("✅ Resit disimpan! Menghantar ke Google Drive...");
+    try {
+      const res = await fetch(BACKEND, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"simpan", resit: rec })
+      });
+      const data = await res.json();
+      if (data.status === "ok") { showToast("☁️ Resit disimpan ke Google Drive!"); }
+      else { showToast("Simpan lokal berjaya. Drive gagal.","err"); }
+    } catch { showToast("Simpan lokal berjaya. Drive gagal.","err"); }
   }
 
   function deleteRecord(id) { setRecords(r=>r.filter(x=>x.id!==id)); setDetailId(null); showToast("Resit dipadam.","err"); }
