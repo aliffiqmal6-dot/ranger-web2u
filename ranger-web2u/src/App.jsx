@@ -68,7 +68,7 @@ export default function WiraDigital() {
 
   async function analyzeImage() {
     setAnalyzing(true);
-    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
+    const BACKEND = "https://script.google.com/macros/s/AKfycbxH7B-lfZ867wqPvYj5nktxFt6k8QOUT99LrMbN9oPABN-GahbkSqkFeEw58FOzqNCi8g/exec";
     try {
       const imgData = canvasRef.current.toDataURL("image/jpeg").split(",")[1];
       const res = await fetch(BACKEND, {
@@ -90,7 +90,7 @@ export default function WiraDigital() {
   async function analyzeText() {
     if (!rawInput.trim()) return showToast("Masukkan teks resit","err");
     setAnalyzing(true);
-    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
+    const BACKEND = "https://script.google.com/macros/s/AKfycbxH7B-lfZ867wqPvYj5nktxFt6k8QOUT99LrMbN9oPABN-GahbkSqkFeEw58FOzqNCi8g/exec";
     try {
       const res = await fetch(BACKEND, {
         method:"POST",
@@ -112,7 +112,7 @@ export default function WiraDigital() {
     if (overLimit) { setShowUpgrade(true); return; }
     if (!form.penerima.trim()) return showToast("Masukkan nama penerima","err");
     if (!form.jumlah || isNaN(Number(form.jumlah)) || Number(form.jumlah)<=0) return showToast("Masukkan jumlah yang sah","err");
-    const BACKEND = "https://script.google.com/macros/s/AKfycbwhgQw16rGDKpJ4fbWP0qxwByLswMq2qQMH5S2vpZ5NB4Dev73X8cgS8J90w8vNOVHaKw/exec";
+    const BACKEND = "https://script.google.com/macros/s/AKfycbxH7B-lfZ867wqPvYj5nktxFt6k8QOUT99LrMbN9oPABN-GahbkSqkFeEw58FOzqNCi8g/exec";
     const rec = { id:Date.now(), ...form, jumlah:parseFloat(form.jumlah), bulan:getMonthKey(form.tarikh), createdAt:new Date().toISOString() };
     setRecords(r=>[rec,...r]);
     setForm({penerima:"",kategori:"Operasi",jumlah:"",catatan:"",tarikh:new Date().toISOString().slice(0,10)});
