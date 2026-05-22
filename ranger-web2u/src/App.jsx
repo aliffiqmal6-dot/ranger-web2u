@@ -1,4 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const SUPABASE_URL = "https://bdhkxkmjyscjocjhryez.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkaGt4a21qeXNjam9jamhyeWV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MTI3MTcsImV4cCI6MjA5NDk4ODcxN30.LxRq3ZSs4fglbydkMUtALSVyA892O4-YbQ4mjPFdqXM";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const BACKEND = "https://script.google.com/macros/s/AKfycbxH7B-lfZ867wqPvYj5nktxFt6k8QOUT99LrMbN9oPABN-GahbkSqkFeEw58FOzqNCi8g/exec";
 
 const CATEGORIES = ["Operasi","Perjalanan","Makanan","Peralatan","Utiliti","Lain-lain"];
 const MONTHS = ["Januari","Februari","Mac","April","Mei","Jun","Julai","Ogos","September","Oktober","November","Disember"];
@@ -112,22 +118,25 @@ export default function WiraDigital() {
     if (overLimit) { setShowUpgrade(true); return; }
     if (!form.penerima.trim()) return showToast("Masukkan nama penerima","err");
     if (!form.jumlah || isNaN(Number(form.jumlah)) || Number(form.jumlah)<=0) return showToast("Masukkan jumlah yang sah","err");
-    const BACKEND = "https://script.google.com/macros/s/AKfycbxH7B-lfZ867wqPvYj5nktxFt6k8QOUT99LrMbN9oPABN-GahbkSqkFeEw58FOzqNCi8g/exec";
     const rec = { id:Date.now(), ...form, jumlah:parseFloat(form.jumlah), bulan:getMonthKey(form.tarikh), createdAt:new Date().toISOString() };
     setRecords(r=>[rec,...r]);
     setForm({penerima:"",kategori:"Operasi",jumlah:"",catatan:"",tarikh:new Date().toISOString().slice(0,10)});
     setRawInput(""); setParsed(null);
-    showToast("✅ Resit disimpan! Menghantar ke Google Drive...");
+    showToast("✅ Resit disimpan! Menghantar ke Supabase...");
     try {
-      const res = await fetch(BACKEND, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ action:"simpan", resit: rec })
-      });
-      const data = await res.json();
-      if (data.status === "ok") { showToast("☁️ Resit disimpan ke Google Drive!"); }
-      else { showToast("Simpan lokal berjaya. Drive gagal.","err"); }
-    } catch { showToast("Simpan lokal berjaya. Drive gagal.","err"); }
+      const { error } = await supabase.from("resit").insert([{
+        tarikh: rec.tarikh,
+        penerima: rec.penerima,
+        kategori: rec.kategori,
+        jumlah: rec.jumlah,
+        catatan: rec.catatan || "",
+        bulan: rec.bulan,
+        user_id: "default",
+        created_at: rec.createdAt
+      }]);
+      if (error) throw error;
+      showToast("☁️ Resit berjaya disimpan ke cloud!");
+    } catch(e) { showToast("Simpan lokal berjaya. Cloud gagal.","err"); }
   }
 
   function deleteRecord(id) { setRecords(r=>r.filter(x=>x.id!==id)); setDetailId(null); showToast("Resit dipadam.","err"); }
